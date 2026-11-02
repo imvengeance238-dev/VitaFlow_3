@@ -20,6 +20,20 @@ android {
         }
     }
 
+    signingConfigs {
+        // Stable debug key so the SHA-1 never changes (needed for Google sign-in).
+        // CI provides it through env vars; without them the default debug key is used.
+        getByName("debug") {
+            val ksPath = System.getenv("VITA_KEYSTORE_PATH")
+            if (!ksPath.isNullOrBlank()) {
+                storeFile = file(ksPath)
+                storePassword = System.getenv("VITA_KEYSTORE_PASSWORD")
+                keyAlias = "vitaflow"
+                keyPassword = System.getenv("VITA_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false

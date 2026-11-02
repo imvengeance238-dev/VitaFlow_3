@@ -26,6 +26,20 @@ jobs:
         with:
           gradle-version: "8.10.2"
 
+      - name: Prepare stable signing key (if secrets exist)
+        env:
+          KS_B64: ${{ secrets.VITA_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.VITA_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KS_B64" ] && [ -n "$KS_PASS" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/vitaflow-debug.keystore"
+            echo "VITA_KEYSTORE_PATH=$RUNNER_TEMP/vitaflow-debug.keystore" >> "$GITHUB_ENV"
+            echo "VITA_KEYSTORE_PASSWORD=$KS_PASS" >> "$GITHUB_ENV"
+            echo "::notice title=Signing::Using stable VitaFlow debug key"
+          else
+            echo "::warning title=Signing::Secrets not set - using a RANDOM debug key (SHA-1 changes every build)"
+          fi
+
       - name: Build debug APK
         run: |
           set -o pipefail
@@ -43,6 +57,12 @@ jobs:
           tail -n 60 /tmp/build.log | sed -e 's/%/%25/g' > /tmp/tail.txt
           MSG2=$(awk 'BEGIN{ORS="%0A"}{print}' /tmp/tail.txt)
           echo "::error title=Build log tail::${MSG2}"
+
+      - name: Show APK signing SHA-1
+        if: success()
+        run: |
+          S=$(keytool -printcert -jarfile "$(ls app/build/outputs/apk/debug/*.apk | head -1)" | grep -E "SHA1:" | head -1)
+          echo "::notice title=APK signing SHA-1::${S}"
 
       - name: Upload APK
         if: success()
