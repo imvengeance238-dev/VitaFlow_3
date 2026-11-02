@@ -61,7 +61,8 @@ jobs:
       - name: Show APK signing SHA-1
         if: success()
         run: |
-          S=$(keytool -printcert -jarfile "$(ls app/build/outputs/apk/debug/*.apk | head -1)" | grep -E "SHA1:" | head -1)
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          S=$("$APKSIGNER" verify --print-certs "$(ls app/build/outputs/apk/debug/*.apk | head -1)" | grep -iE "SHA-1 digest" | head -1)
           echo "::notice title=APK signing SHA-1::${S}"
 
       - name: Upload APK
